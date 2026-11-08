@@ -1,12 +1,24 @@
 /**
- * Motor puro de regras e estado do Jogo da Velha presencial para 2 jogadores.
+ * Motor puro de regras e estado do Jogo da Velha (modos 2 Jogadores e Contra o Computador).
  * Módulo independente de DOM para permitir verificação unitária direta.
  */
 
 import { getAvatarById } from "./avatars.js";
+import { CPU_DIFFICULTIES, chooseCpuMove } from "./cpu-ai.js";
+
+export { CPU_DIFFICULTIES };
 
 export const MAX_NAME_LENGTH = 5;
 export const NAME_PATTERN = /^[A-Z]{1,5}$/;
+
+export const GAME_MODES = Object.freeze({
+  CPU: "cpu",
+  TWO_PLAYERS: "2p"
+});
+
+export const CPU_NAME = "CPU";
+export const DEFAULT_CPU_AVATAR_ID = "robot";
+export const FALLBACK_CPU_AVATAR_ID = "alien";
 
 export const WINNING_COMBINATIONS = Object.freeze([
   Object.freeze([0, 1, 2]),
@@ -20,6 +32,21 @@ export const WINNING_COMBINATIONS = Object.freeze([
 ]);
 
 const VALID_PHASES = new Set(["setup", "playing", "victory", "draw"]);
+const VALID_MODES = new Set([GAME_MODES.CPU, GAME_MODES.TWO_PLAYERS]);
+const VALID_DIFFICULTIES = new Set([CPU_DIFFICULTIES.EASY, CPU_DIFFICULTIES.HARD]);
+
+/**
+ * Determina o avatar automático da CPU garantindo que seja sempre distinto do Jogador 1.
+ * Prefere "robot" por padrão e usa "alien" caso o Jogador 1 escolha "robot".
+ *
+ * @param {string|null} player1AvatarId
+ * @returns {string}
+ */
+export function resolveCpuAvatarId(player1AvatarId) {
+  return player1AvatarId === DEFAULT_CPU_AVATAR_ID
+    ? FALLBACK_CPU_AVATAR_ID
+    : DEFAULT_CPU_AVATAR_ID;
+}
 
 /**
  * Cria uma cópia profunda segura do estado da partida.
@@ -28,6 +55,8 @@ const VALID_PHASES = new Set(["setup", "playing", "victory", "draw"]);
  */
 function cloneState(state) {
   return {
+    mode: state.mode,
+    difficulty: state.difficulty,
     phase: state.phase,
     players: {
       1: { ...state.players[1] },
@@ -43,20 +72,113 @@ function cloneState(state) {
 
 /**
  * Cria o estado inicial na fase de configuração dos jogadores.
+ * Por padrão inicia no modo "Contra o Computador" ("cpu") e dificuldade "Difícil" ("dificil").
+ *
+ * @param {{ mode?: "cpu"|"2p", difficulty?: "facil"|"dificil" }} [options]
  * @returns {object}
  */
-export function createInitialState() {
+export function createInitialState(options = {}) {
+  const mode = VALID_MODES.has(options?.mode) ? options.mode : GAME_MODES.CPU;
+  const difficulty = VALID_DIFFICULTIES.has(options?.difficulty)
+    ? options.difficulty
+    : CPU_DIFFICULTIES.HARD;
+
+  const isCpuMode = mode === GAME_MODES.CPU;
+
   return {
+    mode,
+    difficulty,
     phase: "setup",
     players: {
-      1: { number: 1, name: "", avatarId: null, symbol: "X" },
-      2: { number: 2, name: "", avatarId: null, symbol: "O" }
+      1: { number: 1, name: "", avatarId: null, symbol: "X", isCpu: false },
+      2: isCpuMode
+        ? {
+            number: 2,
+            name: CPU_NAME,
+            avatarId: DEFAULT_CPU_AVATAR_ID,
+            symbol: "O",
+            isCpu: true
+          }
+        : {
+            number: 2,
+            name: "",
+            avatarId: null,
+            symbol: "O",
+            isCpu: false
+          }
     },
     board: Array(9).fill(null),
     startingPlayer: 1,
     currentTurn: 1,
     winner: null,
     winningLine: []
+  };
+}
+
+/**
+ * Alterna o modo de jogo ("cpu" ou "2p") durante a configuração inicial.
+ * @param {object} state Estado atual.
+ * @param {"cpu"|"2p"} mode Novo modo de jogo.
+ * @returns {{ ok: boolean, code?: string, message?: string, state: object }}
+ */
+export function setGameMode(state, mode) {
+  if (!VALID_MODES.has(mode)) {
+    return {
+      ok: false,
+      code: "INVALID_MODE",
+      message: "Modo de jogo inválido.",
+      state: cloneState(state)
+    };
+  }
+
+  const next = cloneState(state);
+  next.mode = mode;
+
+  if (mode === GAME_MODES.CPU) {
+    next.players[2] = {
+      number: 2,
+      name: CPU_NAME,
+      avatarId: resolveCpuAvatarId(next.players[1].avatarId),
+      symbol: "O",
+      isCpu: true
+    };
+  } else {
+    next.players[2] = {
+      number: 2,
+      name: "",
+      avatarId: null,
+      symbol: "O",
+      isCpu: false
+    };
+  }
+
+  return {
+    ok: true,
+    state: next
+  };
+}
+
+/**
+ * Define o nível de dificuldade da CPU ("facil" ou "dificil").
+ * @param {object} state Estado atual.
+ * @param {"facil"|"dificil"} difficulty
+ * @returns {{ ok: boolean, code?: string, message?: string, state: object }}
+ */
+export function setCpuDifficulty(state, difficulty) {
+  if (!VALID_DIFFICULTIES.has(difficulty)) {
+    return {
+      ok: false,
+      code: "INVALID_DIFFICULTY",
+      message: "Nível de dificuldade inválido.",
+      state: cloneState(state)
+    };
+  }
+
+  const next = cloneState(state);
+  next.difficulty = difficulty;
+  return {
+    ok: true,
+    state: next
   };
 }
 
@@ -116,6 +238,17 @@ export function setPlayerName(state, playerNumber, rawInput) {
     };
   }
 
+  if (playerNumber === 2 && state.mode === GAME_MODES.CPU) {
+    return {
+      ok: false,
+      code: "CANNOT_EDIT_CPU",
+      message: "O nome da CPU é definido automaticamente no modo Contra o Computador.",
+      rejectedChars: false,
+      truncated: false,
+      state: cloneState(state)
+    };
+  }
+
   const next = cloneState(state);
   const { value, rejectedChars, truncated } = sanitizePlayerNameInput(rawInput);
   next.players[playerNumber].name = value;
@@ -140,7 +273,9 @@ export function setPlayerName(state, playerNumber, rawInput) {
 }
 
 /**
- * Seleciona um avatar no catálogo para o jogador indicado, impedindo escolha duplicada.
+ * Seleciona um avatar no catálogo para o jogador indicado, impedindo escolha duplicada
+ * no modo 2 Jogadores e realocando automaticamente o avatar da CPU no modo Contra o Computador.
+ *
  * @param {object} state Estado atual.
  * @param {number} playerNumber 1 ou 2.
  * @param {string} avatarId Identificador do avatar no catálogo.
@@ -156,6 +291,15 @@ export function selectPlayerAvatar(state, playerNumber, avatarId) {
     };
   }
 
+  if (playerNumber === 2 && state.mode === GAME_MODES.CPU) {
+    return {
+      ok: false,
+      code: "CANNOT_EDIT_CPU",
+      message: "O avatar da CPU é definido automaticamente no modo Contra o Computador.",
+      state: cloneState(state)
+    };
+  }
+
   const avatar = getAvatarById(avatarId);
   if (!avatar) {
     return {
@@ -163,6 +307,17 @@ export function selectPlayerAvatar(state, playerNumber, avatarId) {
       code: "AVATAR_NOT_FOUND",
       message: "Selecione um avatar válido do catálogo.",
       state: cloneState(state)
+    };
+  }
+
+  const next = cloneState(state);
+
+  if (state.mode === GAME_MODES.CPU && playerNumber === 1) {
+    next.players[1].avatarId = avatarId;
+    next.players[2].avatarId = resolveCpuAvatarId(avatarId);
+    return {
+      ok: true,
+      state: next
     };
   }
 
@@ -176,7 +331,6 @@ export function selectPlayerAvatar(state, playerNumber, avatarId) {
     };
   }
 
-  const next = cloneState(state);
   next.players[playerNumber].avatarId = avatarId;
   return {
     ok: true,
@@ -217,6 +371,15 @@ export function validatePlayersSetup(state) {
       code: "INVALID_NAME_P1",
       field: "player1Name",
       message: "O nome do Jogador 1 deve ter de 1 a 5 letras maiúsculas (A a Z)."
+    };
+  }
+
+  if (state.mode === GAME_MODES.CPU && p1.name === CPU_NAME) {
+    return {
+      ok: false,
+      code: "RESERVED_CPU_NAME",
+      field: "player1Name",
+      message: "O nome CPU é reservado para o computador. Escolha outro nome."
     };
   }
 
@@ -278,12 +441,23 @@ export function validatePlayersSetup(state) {
 }
 
 /**
- * Inicia a primeira partida após validar nomes e avatares dos dois jogadores.
+ * Inicia a primeira partida após validar nomes e avatares dos jogadores.
  * @param {object} state Estado atual.
  * @returns {{ ok: boolean, code?: string, field?: string, message?: string, state: object }}
  */
 export function startMatch(state) {
-  const validation = validatePlayersSetup(state);
+  const next = cloneState(state);
+  if (next.mode === GAME_MODES.CPU) {
+    next.players[2] = {
+      number: 2,
+      name: CPU_NAME,
+      avatarId: resolveCpuAvatarId(next.players[1].avatarId),
+      symbol: "O",
+      isCpu: true
+    };
+  }
+
+  const validation = validatePlayersSetup(next);
   if (!validation.ok) {
     return {
       ...validation,
@@ -291,7 +465,6 @@ export function startMatch(state) {
     };
   }
 
-  const next = cloneState(state);
   next.phase = "playing";
   next.board = Array(9).fill(null);
   next.startingPlayer = 1;
@@ -321,6 +494,20 @@ export function checkWinningLine(board) {
     }
   }
   return null;
+}
+
+/**
+ * Indica se a partida está em andamento e o turno atual pertence à CPU.
+ * @param {object} state
+ * @returns {boolean}
+ */
+export function isCpuTurn(state) {
+  return Boolean(
+    state &&
+      state.phase === "playing" &&
+      state.mode === GAME_MODES.CPU &&
+      state.currentTurn === 2
+  );
 }
 
 /**
@@ -393,7 +580,48 @@ export function makeMove(state, cellIndex) {
 }
 
 /**
- * Inicia uma revanche ("Jogar Novamente") mantendo os mesmos jogadores,
+ * Executa automaticamente a jogada da CPU quando o turno atual pertence a ela.
+ *
+ * @param {object} state Estado atual.
+ * @param {() => number} [randomFn=Math.random] Função geradora aleatória opcional para testes.
+ * @returns {{ ok: boolean, code?: string, message?: string, cellIndex?: number, state: object }}
+ */
+export function makeCpuMove(state, randomFn = Math.random) {
+  if (!isCpuTurn(state)) {
+    return {
+      ok: false,
+      code: "NOT_CPU_TURN",
+      message: "Não é o turno do computador.",
+      state: cloneState(state)
+    };
+  }
+
+  const chosenCell = chooseCpuMove(
+    state.board,
+    state.difficulty,
+    state.players[2].symbol,
+    state.players[1].symbol,
+    randomFn
+  );
+
+  if (chosenCell === null) {
+    return {
+      ok: false,
+      code: "NO_AVAILABLE_MOVES",
+      message: "Não há casas vazias disponíveis.",
+      state: cloneState(state)
+    };
+  }
+
+  const result = makeMove(state, chosenCell);
+  return {
+    ...result,
+    cellIndex: chosenCell
+  };
+}
+
+/**
+ * Inicia uma revanche ("Jogar Novamente") mantendo os mesmos jogadores, modo e dificuldade,
  * limpando o tabuleiro e alternando quem faz a primeira jogada.
  *
  * @param {object} state Estado atual.
@@ -427,7 +655,7 @@ export function playAgain(state) {
 
 /**
  * Retorna para a etapa de configuração inicial ("Trocar Jogadores"),
- * limpando completamente os nomes, avatares e o tabuleiro.
+ * restaurando os padrões iniciais (modo "Contra o Computador" e dificuldade "Difícil").
  *
  * @returns {object}
  */
@@ -445,8 +673,30 @@ export function validateStoredState(candidate) {
     return null;
   }
 
-  const { phase, players, board, startingPlayer, currentTurn, winner, winningLine } = candidate;
+  const {
+    mode: rawMode,
+    difficulty: rawDifficulty,
+    phase,
+    players,
+    board,
+    startingPlayer,
+    currentTurn,
+    winner,
+    winningLine
+  } = candidate;
+
   if (!VALID_PHASES.has(phase)) {
+    return null;
+  }
+
+  const mode = rawMode === undefined ? GAME_MODES.TWO_PLAYERS : rawMode;
+  if (!VALID_MODES.has(mode)) {
+    return null;
+  }
+
+  const difficulty =
+    rawDifficulty === undefined ? CPU_DIFFICULTIES.HARD : rawDifficulty;
+  if (!VALID_DIFFICULTIES.has(difficulty)) {
     return null;
   }
 
@@ -480,27 +730,45 @@ export function validateStoredState(candidate) {
     return null;
   }
 
+  const isCpuMode = mode === GAME_MODES.CPU;
+  const restoredP1AvatarId = p1Avatar ? p1Avatar.id : null;
+
   const restored = {
+    mode,
+    difficulty,
     phase,
     players: {
       1: {
         number: 1,
         name: p1NameSanitized.value,
-        avatarId: p1Avatar ? p1Avatar.id : null,
-        symbol: "X"
+        avatarId: restoredP1AvatarId,
+        symbol: "X",
+        isCpu: false
       },
-      2: {
-        number: 2,
-        name: p2NameSanitized.value,
-        avatarId: p2Avatar ? p2Avatar.id : null,
-        symbol: "O"
-      }
+      2: isCpuMode
+        ? {
+            number: 2,
+            name: CPU_NAME,
+            avatarId: resolveCpuAvatarId(restoredP1AvatarId),
+            symbol: "O",
+            isCpu: true
+          }
+        : {
+            number: 2,
+            name: p2NameSanitized.value,
+            avatarId: p2Avatar ? p2Avatar.id : null,
+            symbol: "O",
+            isCpu: false
+          }
     },
     board: [...board],
     startingPlayer,
     currentTurn,
     winner: winner === 1 || winner === 2 ? winner : null,
-    winningLine: Array.isArray(winningLine) && winningLine.length === 3 ? [...winningLine] : []
+    winningLine:
+      Array.isArray(winningLine) && winningLine.length === 3
+        ? [...winningLine]
+        : []
   };
 
   if (phase !== "setup") {
