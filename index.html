@@ -18,10 +18,14 @@
   <div class="app-shell">
     <header class="app-header">
       <div class="app-header__brand">
-        <span class="app-header__marks" aria-hidden="true">
-          <span class="mark-x">X</span>
-          <span class="mark-o">O</span>
-        </span>
+        <img
+          src="./favicon.svg"
+          alt=""
+          width="48"
+          height="48"
+          class="app-header__logo"
+          aria-hidden="true"
+        >
         <div>
           <h1 class="app-header__title">Jogo da Velha</h1>
           <p class="app-header__subtitle">Disputa contra o Computador ou para 2 jogadores</p>
@@ -31,13 +35,7 @@
 
     <main class="app-main">
       <!-- Etapa 1: Configuração dos Jogadores -->
-      <section id="setup-screen" class="screen setup-screen" aria-labelledby="setup-title">
-        <div class="section-intro">
-          <h2 id="setup-title" class="section-intro__title">Preparem a Disputa!</h2>
-          <p id="setup-subtitle" class="section-intro__desc">Escolha o modo de jogo, informe seu nome (até 5 letras A–Z)
-            e selecione seu avatar.</p>
-        </div>
-
+      <section id="setup-screen" class="screen setup-screen" aria-label="Configuração da partida">
         <form id="setup-form" class="setup-form" novalidate>
           <!-- Barra de Modo de Jogo e Nível de Dificuldade -->
           <div class="mode-config-bar">

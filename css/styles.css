@@ -71,26 +71,13 @@ body {
   gap: 0.875rem;
 }
 
-.app-header__marks {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  padding: 0.4rem 0.7rem;
-  border-radius: var(--radius-md);
-  font-weight: 900;
-  font-size: 1.4rem;
-  letter-spacing: 0.04em;
+.app-header__logo {
+  width: 48px;
+  height: 48px;
+  display: block;
+  flex-shrink: 0;
+  border-radius: 12px;
   box-shadow: var(--shadow-card);
-}
-
-.mark-x {
-  color: var(--color-p1);
-}
-
-.mark-o {
-  color: var(--color-p2);
 }
 
 .app-header__title {
@@ -116,22 +103,6 @@ body {
 .screen {
   width: 100%;
   animation: fadeInScreen 180ms ease-out;
-}
-
-.section-intro {
-  text-align: center;
-  margin-bottom: 1.25rem;
-}
-
-.section-intro__title {
-  margin: 0 0 0.25rem;
-  font-size: clamp(1.2rem, 2.5vw, 1.5rem);
-}
-
-.section-intro__desc {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 0.95rem;
 }
 
 /* Setup Form & Player Cards */
