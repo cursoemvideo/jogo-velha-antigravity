@@ -1,0 +1,20 @@
+# Secrets
+.env*
+!.env.example
+
+# Operating system and logs
+.DS_Store
+Thumbs.db
+*.log
+
+# TODO(projeto): entradas específicas da stack
+
+# Local tooling, never published
+AGENTS.md
+CLAUDE.md
+CLAUDE.local.md
+GEMINI.md
+.agents/
+.claude/
+.cursor/
+.codex/
