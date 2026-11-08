@@ -1,6 +1,5 @@
 :root {
-  color-scheme: dark;
-  --bg-page: #0f172a;
+  --bg-page: #141e33;
   --bg-surface: #1e293b;
   --bg-surface-elevated: #283548;
   --bg-input: #0f172a;
@@ -36,22 +35,12 @@
   display: none !important;
 }
 
-html {
-  margin: 0;
-  padding: 0;
-  min-height: 100%;
-  background-color: var(--bg-page);
-  color: var(--text-primary);
-}
-
+html,
 body {
   margin: 0;
   padding: 0;
-  min-height: 100vh;
-  min-height: 100dvh;
-  background-color: var(--bg-page);
-  background-image: radial-gradient(circle at top, #1e293b 0%, var(--bg-page) 70%);
-  background-repeat: no-repeat;
+  min-height: 100%;
+  background-color: #141e33;
   color: var(--text-primary);
   font-family: var(--font-sans);
   line-height: 1.5;
