@@ -1,16 +1,19 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Jogo da Velha para jogar contra o Computador ou presencialmente em 2 jogadores no mesmo dispositivo, com avatares divertidos e celebração do vencedor.">
-  <title>Jogo da Velha — Contra o Computador ou 2 Jogadores</title>
+  <meta name="description"
+    content="Jogo da Velha para jogar contra o Computador ou presencialmente em 2 jogadores no mesmo dispositivo, com avatares divertidos e celebração do vencedor.">
+  <title>Jogo da Velha Vibe Code</title>
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png">
   <link rel="shortcut icon" href="./favicon.ico">
   <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
   <link rel="stylesheet" href="./css/styles.css">
 </head>
+
 <body>
   <div class="app-shell">
     <header class="app-header">
@@ -31,7 +34,8 @@
       <section id="setup-screen" class="screen setup-screen" aria-labelledby="setup-title">
         <div class="section-intro">
           <h2 id="setup-title" class="section-intro__title">Preparem a Disputa!</h2>
-          <p id="setup-subtitle" class="section-intro__desc">Escolha o modo de jogo, informe seu nome (até 5 letras A–Z) e selecione seu avatar.</p>
+          <p id="setup-subtitle" class="section-intro__desc">Escolha o modo de jogo, informe seu nome (até 5 letras A–Z)
+            e selecione seu avatar.</p>
         </div>
 
         <form id="setup-form" class="setup-form" novalidate>
@@ -40,22 +44,11 @@
             <div class="mode-config-group" role="group" aria-labelledby="mode-select-label">
               <span id="mode-select-label" class="form-label">Modo de Jogo</span>
               <div class="segmented-control">
-                <button
-                  type="button"
-                  id="mode-cpu-btn"
-                  class="segmented-btn segmented-btn--active"
-                  data-mode="cpu"
-                  aria-pressed="true"
-                >
+                <button type="button" id="mode-cpu-btn" class="segmented-btn segmented-btn--active" data-mode="cpu"
+                  aria-pressed="true">
                   Contra o Computador
                 </button>
-                <button
-                  type="button"
-                  id="mode-2p-btn"
-                  class="segmented-btn"
-                  data-mode="2p"
-                  aria-pressed="false"
-                >
+                <button type="button" id="mode-2p-btn" class="segmented-btn" data-mode="2p" aria-pressed="false">
                   2 Jogadores
                 </button>
               </div>
@@ -64,22 +57,12 @@
             <div id="difficulty-group" class="mode-config-group" role="group" aria-labelledby="difficulty-select-label">
               <span id="difficulty-select-label" class="form-label">Nível de Dificuldade</span>
               <div class="segmented-control">
-                <button
-                  type="button"
-                  id="diff-easy-btn"
-                  class="segmented-btn"
-                  data-difficulty="facil"
-                  aria-pressed="false"
-                >
+                <button type="button" id="diff-easy-btn" class="segmented-btn" data-difficulty="facil"
+                  aria-pressed="false">
                   Fácil
                 </button>
-                <button
-                  type="button"
-                  id="diff-hard-btn"
-                  class="segmented-btn segmented-btn--active"
-                  data-difficulty="dificil"
-                  aria-pressed="true"
-                >
+                <button type="button" id="diff-hard-btn" class="segmented-btn segmented-btn--active"
+                  data-difficulty="dificil" aria-pressed="true">
                   Difícil
                 </button>
               </div>
@@ -97,19 +80,9 @@
               <div class="form-group">
                 <label for="player1-name" class="form-label">Nome do Jogador 1</label>
                 <div class="name-input-wrapper">
-                  <input
-                    type="text"
-                    id="player1-name"
-                    name="player1Name"
-                    class="name-input"
-                    maxlength="5"
-                    autocomplete="off"
-                    spellcheck="false"
-                    autocapitalize="characters"
-                    placeholder="EX: ANA"
-                    aria-describedby="player1-hint player1-name-error"
-                    required
-                  >
+                  <input type="text" id="player1-name" name="player1Name" class="name-input" maxlength="5"
+                    autocomplete="off" spellcheck="false" autocapitalize="characters" placeholder="EX: ANA"
+                    aria-describedby="player1-hint player1-name-error" required>
                   <span id="player1-char-count" class="char-counter" aria-hidden="true">0/5</span>
                 </div>
                 <p id="player1-hint" class="field-hint">De 1 a 5 letras maiúsculas (A a Z, sem espaços ou acentos).</p>
@@ -153,22 +126,13 @@
                 <div class="form-group">
                   <label for="player2-name" class="form-label">Nome do Jogador 2</label>
                   <div class="name-input-wrapper">
-                    <input
-                      type="text"
-                      id="player2-name"
-                      name="player2Name"
-                      class="name-input"
-                      maxlength="5"
-                      autocomplete="off"
-                      spellcheck="false"
-                      autocapitalize="characters"
-                      placeholder="EX: LEO"
-                      aria-describedby="player2-hint player2-name-error"
-                      required
-                    >
+                    <input type="text" id="player2-name" name="player2Name" class="name-input" maxlength="5"
+                      autocomplete="off" spellcheck="false" autocapitalize="characters" placeholder="EX: LEO"
+                      aria-describedby="player2-hint player2-name-error" required>
                     <span id="player2-char-count" class="char-counter" aria-hidden="true">0/5</span>
                   </div>
-                  <p id="player2-hint" class="field-hint">De 1 a 5 letras maiúsculas (A a Z, sem espaços ou acentos).</p>
+                  <p id="player2-hint" class="field-hint">De 1 a 5 letras maiúsculas (A a Z, sem espaços ou acentos).
+                  </p>
                   <p id="player2-name-error" class="field-error" role="alert" aria-live="polite" hidden></p>
                 </div>
 
@@ -233,7 +197,8 @@
         </div>
 
         <!-- Banner de Celebração de Vitória ou Aviso de Empate ("Deu Velha!") -->
-        <div id="result-banner" class="celebration-banner" role="region" aria-label="Resultado da partida" aria-live="assertive" hidden>
+        <div id="result-banner" class="celebration-banner" role="region" aria-label="Resultado da partida"
+          aria-live="assertive" hidden>
           <div id="confetti-container" class="confetti-container" aria-hidden="true"></div>
           <div id="result-avatar" class="celebration-banner__avatar" aria-hidden="true"></div>
           <div class="celebration-banner__content">
@@ -246,15 +211,24 @@
         <!-- Tabuleiro 3x3 (9 Casas) -->
         <div class="board-container">
           <div id="board" class="board" role="grid" aria-label="Tabuleiro 3 por 3 do Jogo da Velha">
-            <button type="button" class="board-cell" data-cell-index="0" aria-label="Casa 1 (linha 1, coluna 1): vazia"></button>
-            <button type="button" class="board-cell" data-cell-index="1" aria-label="Casa 2 (linha 1, coluna 2): vazia"></button>
-            <button type="button" class="board-cell" data-cell-index="2" aria-label="Casa 3 (linha 1, coluna 3): vazia"></button>
-            <button type="button" class="board-cell" data-cell-index="3" aria-label="Casa 4 (linha 2, coluna 1): vazia"></button>
-            <button type="button" class="board-cell" data-cell-index="4" aria-label="Casa 5 (linha 2, coluna 2): vazia"></button>
-            <button type="button" class="board-cell" data-cell-index="5" aria-label="Casa 6 (linha 2, coluna 3): vazia"></button>
-            <button type="button" class="board-cell" data-cell-index="6" aria-label="Casa 7 (linha 3, coluna 1): vazia"></button>
-            <button type="button" class="board-cell" data-cell-index="7" aria-label="Casa 8 (linha 3, coluna 2): vazia"></button>
-            <button type="button" class="board-cell" data-cell-index="8" aria-label="Casa 9 (linha 3, coluna 3): vazia"></button>
+            <button type="button" class="board-cell" data-cell-index="0"
+              aria-label="Casa 1 (linha 1, coluna 1): vazia"></button>
+            <button type="button" class="board-cell" data-cell-index="1"
+              aria-label="Casa 2 (linha 1, coluna 2): vazia"></button>
+            <button type="button" class="board-cell" data-cell-index="2"
+              aria-label="Casa 3 (linha 1, coluna 3): vazia"></button>
+            <button type="button" class="board-cell" data-cell-index="3"
+              aria-label="Casa 4 (linha 2, coluna 1): vazia"></button>
+            <button type="button" class="board-cell" data-cell-index="4"
+              aria-label="Casa 5 (linha 2, coluna 2): vazia"></button>
+            <button type="button" class="board-cell" data-cell-index="5"
+              aria-label="Casa 6 (linha 2, coluna 3): vazia"></button>
+            <button type="button" class="board-cell" data-cell-index="6"
+              aria-label="Casa 7 (linha 3, coluna 1): vazia"></button>
+            <button type="button" class="board-cell" data-cell-index="7"
+              aria-label="Casa 8 (linha 3, coluna 2): vazia"></button>
+            <button type="button" class="board-cell" data-cell-index="8"
+              aria-label="Casa 9 (linha 3, coluna 3): vazia"></button>
           </div>
           <p id="match-feedback" class="match-feedback" role="status" aria-live="polite" hidden></p>
         </div>
@@ -274,4 +248,5 @@
 
   <script type="module" src="./js/main.js"></script>
 </body>
+
 </html>
