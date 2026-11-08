@@ -907,24 +907,6 @@ body {
   font-weight: 600;
 }
 
-/* Footer */
-.app-footer {
-  text-align: center;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  padding-top: 0.5rem;
-}
-
-.app-footer kbd {
-  padding: 0.1rem 0.35rem;
-  border-radius: 4px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  font-family: inherit;
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-}
-
 /* GPU-accelerated Keyframes */
 @keyframes fadeInScreen {
   from {
