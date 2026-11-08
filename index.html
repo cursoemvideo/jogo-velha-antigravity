@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Jogo da Velha presencial para 2 jogadores no mesmo dispositivo, com escolha de nomes, avatares divertidos e celebração do vencedor.">
+  <title>Jogo da Velha — 2 Jogadores</title>
+  <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="app-header__brand">
+        <span class="app-header__marks" aria-hidden="true">
+          <span class="mark-x">X</span>
+          <span class="mark-o">O</span>
+        </span>
+        <div>
+          <h1 class="app-header__title">Jogo da Velha</h1>
+          <p class="app-header__subtitle">Disputa presencial para 2 jogadores</p>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <!-- Etapa 1: Configuração dos Jogadores -->
+      <section id="setup-screen" class="screen setup-screen" aria-labelledby="setup-title">
+        <div class="section-intro">
+          <h2 id="setup-title" class="section-intro__title">Preparem a Disputa!</h2>
+          <p class="section-intro__desc">Escolham nomes de até 5 letras (A–Z) e avatares exclusivos para começar.</p>
+        </div>
+
+        <form id="setup-form" class="setup-form" novalidate>
+          <div class="setup-grid">
+            <!-- Cartão do Jogador 1 (X) -->
+            <fieldset class="player-card player-card--p1">
+              <legend class="player-card__legend">
+                <span class="player-card__symbol player-card__symbol--x" aria-hidden="true">X</span>
+                <span>Jogador 1 <small>(começa com X)</small></span>
+              </legend>
+
+              <div class="form-group">
+                <label for="player1-name" class="form-label">Nome do Jogador 1</label>
+                <div class="name-input-wrapper">
+                  <input
+                    type="text"
+                    id="player1-name"
+                    name="player1Name"
+                    class="name-input"
+                    maxlength="5"
+                    autocomplete="off"
+                    spellcheck="false"
+                    autocapitalize="characters"
+                    placeholder="EX: ANA"
+                    aria-describedby="player1-hint player1-name-error"
+                    required
+                  >
+                  <span id="player1-char-count" class="char-counter" aria-hidden="true">0/5</span>
+                </div>
+                <p id="player1-hint" class="field-hint">De 1 a 5 letras maiúsculas (A a Z, sem espaços ou acentos).</p>
+                <p id="player1-name-error" class="field-error" role="alert" aria-live="polite" hidden></p>
+              </div>
+
+              <div class="form-group" role="group" aria-labelledby="player1-avatar-label">
+                <div class="avatar-group-header">
+                  <span id="player1-avatar-label" class="form-label">Avatar do Jogador 1</span>
+                  <span id="player1-selected-avatar-name" class="selected-avatar-tag">Nenhum escolhido</span>
+                </div>
+                <div id="player1-avatar-grid" class="avatar-grid"></div>
+                <p id="player1-avatar-error" class="field-error" role="alert" aria-live="polite" hidden></p>
+              </div>
+            </fieldset>
+
+            <!-- Cartão do Jogador 2 (O) -->
+            <fieldset class="player-card player-card--p2">
+              <legend class="player-card__legend">
+                <span class="player-card__symbol player-card__symbol--o" aria-hidden="true">O</span>
+                <span>Jogador 2 <small>(joga com O)</small></span>
+              </legend>
+
+              <div class="form-group">
+                <label for="player2-name" class="form-label">Nome do Jogador 2</label>
+                <div class="name-input-wrapper">
+                  <input
+                    type="text"
+                    id="player2-name"
+                    name="player2Name"
+                    class="name-input"
+                    maxlength="5"
+                    autocomplete="off"
+                    spellcheck="false"
+                    autocapitalize="characters"
+                    placeholder="EX: LEO"
+                    aria-describedby="player2-hint player2-name-error"
+                    required
+                  >
+                  <span id="player2-char-count" class="char-counter" aria-hidden="true">0/5</span>
+                </div>
+                <p id="player2-hint" class="field-hint">De 1 a 5 letras maiúsculas (A a Z, sem espaços ou acentos).</p>
+                <p id="player2-name-error" class="field-error" role="alert" aria-live="polite" hidden></p>
+              </div>
+
+              <div class="form-group" role="group" aria-labelledby="player2-avatar-label">
+                <div class="avatar-group-header">
+                  <span id="player2-avatar-label" class="form-label">Avatar do Jogador 2</span>
+                  <span id="player2-selected-avatar-name" class="selected-avatar-tag">Nenhum escolhido</span>
+                </div>
+                <div id="player2-avatar-grid" class="avatar-grid"></div>
+                <p id="player2-avatar-error" class="field-error" role="alert" aria-live="polite" hidden></p>
+              </div>
+            </fieldset>
+          </div>
+
+          <div id="setup-general-error" class="setup-general-error" role="alert" aria-live="polite" hidden></div>
+
+          <div class="setup-actions">
+            <button type="submit" id="start-match-btn" class="btn btn--primary btn--large">
+              Iniciar Partida
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Etapa 2: Partida no Tabuleiro 3x3 e Resultado -->
+      <section id="match-screen" class="screen match-screen" aria-labelledby="match-status-heading" hidden>
+        <!-- Painel dos Jogadores -->
+        <div class="players-banner" aria-label="Jogadores da partida">
+          <div id="player1-badge" class="player-badge player-badge--p1">
+            <div id="player1-badge-avatar" class="player-badge__avatar" aria-hidden="true"></div>
+            <div class="player-badge__details">
+              <span class="player-badge__role">Jogador 1</span>
+              <strong id="player1-badge-name" class="player-badge__name"></strong>
+            </div>
+            <span class="player-badge__symbol player-badge__symbol--x" aria-label="Símbolo X">X</span>
+          </div>
+
+          <div class="players-banner__vs" aria-hidden="true">VS</div>
+
+          <div id="player2-badge" class="player-badge player-badge--p2">
+            <div id="player2-badge-avatar" class="player-badge__avatar" aria-hidden="true"></div>
+            <div class="player-badge__details">
+              <span class="player-badge__role">Jogador 2</span>
+              <strong id="player2-badge-name" class="player-badge__name"></strong>
+            </div>
+            <span class="player-badge__symbol player-badge__symbol--o" aria-label="Símbolo O">O</span>
+          </div>
+        </div>
+
+        <!-- Indicador de Turno Ativo -->
+        <div id="turn-banner" class="turn-banner" role="status" aria-live="polite">
+          <div id="turn-avatar" class="turn-banner__avatar" aria-hidden="true"></div>
+          <div class="turn-banner__content">
+            <h2 id="match-status-heading" class="turn-banner__title">
+              Turno de <span id="turn-player-name"></span>
+            </h2>
+            <p class="turn-banner__subtitle">
+              Sua vez! Escolha uma casa vazia para marcar <strong id="turn-player-symbol">X</strong>
+            </p>
+          </div>
+        </div>
+
+        <!-- Banner de Celebração de Vitória ou Aviso de Empate ("Deu Velha!") -->
+        <div id="result-banner" class="celebration-banner" role="region" aria-label="Resultado da partida" aria-live="assertive" hidden>
+          <div id="confetti-container" class="confetti-container" aria-hidden="true"></div>
+          <div id="result-avatar" class="celebration-banner__avatar" aria-hidden="true"></div>
+          <div class="celebration-banner__content">
+            <span id="result-kicker" class="celebration-banner__kicker"></span>
+            <h2 id="result-title" class="celebration-banner__title"></h2>
+            <p id="result-subtitle" class="celebration-banner__subtitle"></p>
+          </div>
+        </div>
+
+        <!-- Tabuleiro 3x3 (9 Casas) -->
+        <div class="board-container">
+          <div id="board" class="board" role="grid" aria-label="Tabuleiro 3 por 3 do Jogo da Velha">
+            <button type="button" class="board-cell" data-cell-index="0" aria-label="Casa 1 (linha 1, coluna 1): vazia"></button>
+            <button type="button" class="board-cell" data-cell-index="1" aria-label="Casa 2 (linha 1, coluna 2): vazia"></button>
+            <button type="button" class="board-cell" data-cell-index="2" aria-label="Casa 3 (linha 1, coluna 3): vazia"></button>
+            <button type="button" class="board-cell" data-cell-index="3" aria-label="Casa 4 (linha 2, coluna 1): vazia"></button>
+            <button type="button" class="board-cell" data-cell-index="4" aria-label="Casa 5 (linha 2, coluna 2): vazia"></button>
+            <button type="button" class="board-cell" data-cell-index="5" aria-label="Casa 6 (linha 2, coluna 3): vazia"></button>
+            <button type="button" class="board-cell" data-cell-index="6" aria-label="Casa 7 (linha 3, coluna 1): vazia"></button>
+            <button type="button" class="board-cell" data-cell-index="7" aria-label="Casa 8 (linha 3, coluna 2): vazia"></button>
+            <button type="button" class="board-cell" data-cell-index="8" aria-label="Casa 9 (linha 3, coluna 3): vazia"></button>
+          </div>
+          <p id="match-feedback" class="match-feedback" role="status" aria-live="polite" hidden></p>
+        </div>
+
+        <!-- Ações de Fim de Partida (exibidas apenas quando a partida termina) -->
+        <div id="end-actions" class="end-actions" hidden>
+          <button type="button" id="play-again-btn" class="btn btn--primary">
+            Jogar Novamente
+          </button>
+          <button type="button" id="change-players-btn" class="btn btn--secondary">
+            Trocar Jogadores
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <p>Use clique, toque ou teclado (<kbd>Tab</kbd>, <kbd>Enter</kbd> / <kbd>Espaço</kbd> e setas no tabuleiro) para jogar.</p>
+    </footer>
+  </div>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
