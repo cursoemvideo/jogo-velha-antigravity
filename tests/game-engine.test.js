@@ -4,14 +4,23 @@ import assert from "node:assert/strict";
 import { AVATARS, getAvatarById } from "../js/avatars.js";
 import {
   MAX_NAME_LENGTH,
+  GAME_MODES,
+  CPU_DIFFICULTIES,
+  CPU_NAME,
+  DEFAULT_CPU_AVATAR_ID,
+  FALLBACK_CPU_AVATAR_ID,
   WINNING_COMBINATIONS,
   createInitialState,
+  setGameMode,
+  setCpuDifficulty,
   sanitizePlayerNameInput,
   setPlayerName,
   selectPlayerAvatar,
   validatePlayersSetup,
   startMatch,
+  isCpuTurn,
   makeMove,
+  makeCpuMove,
   playAgain,
   resetToSetup,
   validateStoredState
@@ -67,7 +76,7 @@ describe("Validação e Higienização de Nomes dos Jogadores", () => {
     assert.equal(res.value, "JO");
     assert.equal(res.rejectedChars, true);
 
-    let state = createInitialState();
+    let state = createInitialState({ mode: GAME_MODES.TWO_PLAYERS });
     const update = setPlayerName(state, 1, "ana12");
     assert.equal(update.ok, false);
     assert.equal(update.code, "INVALID_CHARS_REJECTED");
@@ -75,7 +84,7 @@ describe("Validação e Higienização de Nomes dos Jogadores", () => {
   });
 
   it("bloqueia o início da partida se algum nome estiver vazio ou se os nomes forem idênticos", () => {
-    let state = createInitialState();
+    let state = createInitialState({ mode: GAME_MODES.TWO_PLAYERS });
     state = selectPlayerAvatar(state, 1, "robot").state;
     state = selectPlayerAvatar(state, 2, "cat").state;
 
@@ -98,9 +107,9 @@ describe("Validação e Higienização de Nomes dos Jogadores", () => {
   });
 });
 
-describe("Escolha de Avatares Distintos", () => {
+describe("Escolha de Avatares Distintos (Modo 2 Jogadores)", () => {
   it("registra a escolha de avatares diferentes e impede escolha duplicada", () => {
-    let state = createInitialState();
+    let state = createInitialState({ mode: GAME_MODES.TWO_PLAYERS });
     const sel1 = selectPlayerAvatar(state, 1, "fox");
     assert.equal(sel1.ok, true);
     state = sel1.state;
@@ -117,7 +126,7 @@ describe("Escolha de Avatares Distintos", () => {
   });
 
   it("bloqueia o início da partida se ao menos um jogador não escolheu avatar", () => {
-    let state = createInitialState();
+    let state = createInitialState({ mode: GAME_MODES.TWO_PLAYERS });
     state = setPlayerName(state, 1, "LEO").state;
     state = setPlayerName(state, 2, "BIA").state;
 
@@ -134,7 +143,7 @@ describe("Escolha de Avatares Distintos", () => {
 
 describe("Partida no Tabuleiro 3x3 e Controle de Turnos", () => {
   function createStartedMatch() {
-    let state = createInitialState();
+    let state = createInitialState({ mode: GAME_MODES.TWO_PLAYERS });
     state = setPlayerName(state, 1, "LUCA").state;
     state = setPlayerName(state, 2, "NINA").state;
     state = selectPlayerAvatar(state, 1, "robot").state;
@@ -179,7 +188,7 @@ describe("Partida no Tabuleiro 3x3 e Controle de Turnos", () => {
 
 describe("Detecção de Vitória e Empate (Deu Velha)", () => {
   function createStartedMatch() {
-    let state = createInitialState();
+    let state = createInitialState({ mode: GAME_MODES.TWO_PLAYERS });
     state = setPlayerName(state, 1, "MAX").state;
     state = setPlayerName(state, 2, "EVA").state;
     state = selectPlayerAvatar(state, 1, "alien").state;
@@ -215,10 +224,6 @@ describe("Detecção de Vitória e Empate (Deu Velha)", () => {
 
   it("detecta empate ('Deu Velha') quando as 9 casas são preenchidas sem linha vencedora", () => {
     let state = createStartedMatch();
-    // Sequência sem vencedor:
-    // X O X
-    // X O O
-    // O X X
     const moves = [0, 1, 2, 4, 3, 5, 7, 6, 8];
     for (const cell of moves) {
       state = makeMove(state, cell).state;
@@ -231,8 +236,6 @@ describe("Detecção de Vitória e Empate (Deu Velha)", () => {
 
   it("declara vitória (e não empate) quando a 9ª casa completa uma linha vencedora", () => {
     let state = createStartedMatch();
-    // Sequência de 9 jogadas onde nenhuma linha fecha antes da 9ª casa (casa 8):
-    // 0(X), 1(O), 2(X), 3(O), 4(X), 6(O), 5(X), 7(O), 8(X)
     const moves = [0, 1, 2, 3, 4, 6, 5, 7, 8];
     for (const cell of moves) {
       state = makeMove(state, cell).state;
@@ -246,7 +249,7 @@ describe("Detecção de Vitória e Empate (Deu Velha)", () => {
 
 describe("Revanche, Troca de Jogadores e Persistência de Sessão", () => {
   it("alterna consistentemente quem começa a partida em múltiplas revanches ('Jogar Novamente')", () => {
-    let state = createInitialState();
+    let state = createInitialState({ mode: GAME_MODES.TWO_PLAYERS });
     state = setPlayerName(state, 1, "SOL").state;
     state = setPlayerName(state, 2, "LUA").state;
     state = selectPlayerAvatar(state, 1, "cat").state;
@@ -256,13 +259,11 @@ describe("Revanche, Troca de Jogadores e Persistência de Sessão", () => {
     assert.equal(state.startingPlayer, 1);
     assert.equal(state.currentTurn, 1);
 
-    // P1 vence na primeira partida
     for (const cell of [0, 3, 1, 4, 2]) {
       state = makeMove(state, cell).state;
     }
     assert.equal(state.phase, "victory");
 
-    // Revanche 1 -> começa Jogador 2 (O)
     state = playAgain(state).state;
     assert.equal(state.phase, "playing");
     assert.deepEqual(state.board, Array(9).fill(null));
@@ -271,31 +272,31 @@ describe("Revanche, Troca de Jogadores e Persistência de Sessão", () => {
     assert.equal(state.players[1].name, "SOL");
     assert.equal(state.players[2].name, "LUA");
 
-    // P2 vence na segunda partida (começando por P2)
     for (const cell of [0, 3, 1, 4, 2]) {
       state = makeMove(state, cell).state;
     }
     assert.equal(state.phase, "victory");
     assert.equal(state.winner, 2);
 
-    // Revanche 2 -> volta a começar Jogador 1 (X)
     state = playAgain(state).state;
     assert.equal(state.startingPlayer, 1);
     assert.equal(state.currentTurn, 1);
   });
 
-  it("limpa completamente nomes, avatares e tabuleiro ao acionar 'Trocar Jogadores'", () => {
+  it("limpa completamente o perfil do Jogador 1 e restaura os padrões ao acionar 'Trocar Jogadores'", () => {
     const clean = resetToSetup();
     assert.equal(clean.phase, "setup");
+    assert.equal(clean.mode, GAME_MODES.CPU);
+    assert.equal(clean.difficulty, CPU_DIFFICULTIES.HARD);
     assert.equal(clean.players[1].name, "");
-    assert.equal(clean.players[2].name, "");
     assert.equal(clean.players[1].avatarId, null);
-    assert.equal(clean.players[2].avatarId, null);
+    assert.equal(clean.players[2].name, CPU_NAME);
+    assert.equal(clean.players[2].avatarId, DEFAULT_CPU_AVATAR_ID);
     assert.deepEqual(clean.board, Array(9).fill(null));
   });
 
   it("valida estado salvo do sessionStorage e rejeita estado corrompido", () => {
-    let state = createInitialState();
+    let state = createInitialState({ mode: GAME_MODES.TWO_PLAYERS });
     state = setPlayerName(state, 1, "RAY").state;
     state = setPlayerName(state, 2, "KAI").state;
     state = selectPlayerAvatar(state, 1, "dino").state;
@@ -307,10 +308,118 @@ describe("Revanche, Troca de Jogadores e Persistência de Sessão", () => {
     assert.equal(validRestored.players[1].name, "RAY");
     assert.equal(validRestored.phase, "playing");
 
-    // Corrompendo nomes para iguais em partida ativa
     const corrupted = JSON.parse(JSON.stringify(state));
     corrupted.players[2].name = "RAY";
     assert.equal(validateStoredState(corrupted), null);
     assert.equal(validateStoredState(null), null);
+  });
+});
+
+describe("Modo Contra o Computador (CPU)", () => {
+  it("inicia por padrão no modo Contra o Computador ('cpu') e dificuldade Difícil ('dificil') com CPU usando avatar 'robot'", () => {
+    const state = createInitialState();
+    assert.equal(state.mode, GAME_MODES.CPU);
+    assert.equal(state.difficulty, CPU_DIFFICULTIES.HARD);
+    assert.equal(state.players[2].name, CPU_NAME);
+    assert.equal(state.players[2].avatarId, DEFAULT_CPU_AVATAR_ID);
+    assert.equal(state.players[2].isCpu, true);
+  });
+
+  it("reatribui automaticamente o avatar da CPU para 'alien' quando o Jogador 1 escolhe 'robot' e volta para 'robot' quando muda", () => {
+    let state = createInitialState();
+    state = selectPlayerAvatar(state, 1, "robot").state;
+    assert.equal(state.players[1].avatarId, "robot");
+    assert.equal(state.players[2].avatarId, FALLBACK_CPU_AVATAR_ID);
+
+    state = selectPlayerAvatar(state, 1, "cat").state;
+    assert.equal(state.players[1].avatarId, "cat");
+    assert.equal(state.players[2].avatarId, DEFAULT_CPU_AVATAR_ID);
+  });
+
+  it("bloqueia início da partida quando o Jogador 1 usa o nome reservado 'CPU' ou não informa nome/avatar", () => {
+    let state = createInitialState();
+    state = selectPlayerAvatar(state, 1, "fox").state;
+    state = setPlayerName(state, 1, "cpu").state;
+
+    const reservedAttempt = startMatch(state);
+    assert.equal(reservedAttempt.ok, false);
+    assert.equal(reservedAttempt.code, "RESERVED_CPU_NAME");
+
+    state = setPlayerName(state, 1, "GUGA").state;
+    const validStart = startMatch(state);
+    assert.equal(validStart.ok, true);
+    assert.equal(validStart.state.phase, "playing");
+  });
+
+  it("permite alternar entre modo 'cpu' e '2p' e trocar dificuldade ('facil' e 'dificil')", () => {
+    let state = createInitialState();
+    const diffRes = setCpuDifficulty(state, CPU_DIFFICULTIES.EASY);
+    assert.equal(diffRes.ok, true);
+    state = diffRes.state;
+    assert.equal(state.difficulty, CPU_DIFFICULTIES.EASY);
+
+    const mode2p = setGameMode(state, GAME_MODES.TWO_PLAYERS);
+    assert.equal(mode2p.ok, true);
+    state = mode2p.state;
+    assert.equal(state.mode, GAME_MODES.TWO_PLAYERS);
+    assert.equal(state.players[2].name, "");
+    assert.equal(state.players[2].avatarId, null);
+    assert.equal(state.players[2].isCpu, false);
+
+    state = selectPlayerAvatar(state, 1, "robot").state;
+    const backToCpu = setGameMode(state, GAME_MODES.CPU);
+    assert.equal(backToCpu.ok, true);
+    assert.equal(backToCpu.state.players[2].name, CPU_NAME);
+    assert.equal(backToCpu.state.players[2].avatarId, FALLBACK_CPU_AVATAR_ID);
+    assert.equal(backToCpu.state.players[2].isCpu, true);
+  });
+
+  it("executa o turno automático da CPU com makeCpuMove e suporta revanche com abertura da CPU", () => {
+    let state = createInitialState();
+    state = setPlayerName(state, 1, "GUGA").state;
+    state = selectPlayerAvatar(state, 1, "fox").state;
+    state = startMatch(state).state;
+
+    assert.equal(isCpuTurn(state), false);
+    assert.equal(makeCpuMove(state).ok, false);
+
+    // Jogador 1 marca canto 0 -> passa vez para CPU (2)
+    state = makeMove(state, 0).state;
+    assert.equal(isCpuTurn(state), true);
+
+    // CPU no modo Difícil deve escolher o centro (4)
+    const cpuStep = makeCpuMove(state);
+    assert.equal(cpuStep.ok, true);
+    assert.equal(cpuStep.cellIndex, 4);
+    state = cpuStep.state;
+    assert.equal(state.board[4], "O");
+    assert.equal(state.currentTurn, 1);
+    assert.equal(isCpuTurn(state), false);
+
+    // Simula fim da partida (vitória da CPU na coluna central 1, 4, 7)
+    state = makeMove(state, 2).state; // X em 2 -> CPU bloqueia em 1
+    state = makeCpuMove(state).state; // O em 1
+    state = makeMove(state, 6).state; // X em 6 -> CPU vence em 7
+    state = makeCpuMove(state).state; // O em 7 -> vitória da CPU!
+
+    assert.equal(state.phase, "victory");
+    assert.equal(state.winner, 2);
+
+    // Revanche: agora a CPU começa (startingPlayer = 2, currentTurn = 2)
+    state = playAgain(state).state;
+    assert.equal(state.startingPlayer, 2);
+    assert.equal(state.currentTurn, 2);
+    assert.equal(isCpuTurn(state), true);
+
+    const openingCpu = makeCpuMove(state);
+    assert.equal(openingCpu.ok, true);
+    assert.equal(openingCpu.state.currentTurn, 1);
+
+    // Verifica restauração de sessão do modo CPU
+    const restored = validateStoredState(JSON.parse(JSON.stringify(openingCpu.state)));
+    assert.ok(restored !== null);
+    assert.equal(restored.mode, GAME_MODES.CPU);
+    assert.equal(restored.players[2].name, CPU_NAME);
+    assert.equal(restored.players[2].isCpu, true);
   });
 });
