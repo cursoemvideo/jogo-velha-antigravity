@@ -5,6 +5,7 @@
  */
 
 import { AVATARS, getAvatarById } from "./avatars.js";
+import { GAME_MODES, CPU_DIFFICULTIES, isCpuTurn } from "./game-engine.js";
 
 const CONFETTI_COLORS = [
   "#22c55e",
@@ -47,6 +48,9 @@ function createAvatarSvgElement(avatarId) {
  * @param {string | null} avatarId
  */
 function renderAvatarInto(container, avatarId) {
+  if (!container) {
+    return;
+  }
   container.replaceChildren();
   if (!avatarId) {
     return;
@@ -66,6 +70,11 @@ export function getDomElements(doc = document) {
     setupScreen: doc.getElementById("setup-screen"),
     matchScreen: doc.getElementById("match-screen"),
     setupForm: doc.getElementById("setup-form"),
+    modeCpuBtn: doc.getElementById("mode-cpu-btn"),
+    mode2pBtn: doc.getElementById("mode-2p-btn"),
+    difficultyGroup: doc.getElementById("difficulty-group"),
+    diffEasyBtn: doc.getElementById("diff-easy-btn"),
+    diffHardBtn: doc.getElementById("diff-hard-btn"),
     player1NameInput: doc.getElementById("player1-name"),
     player2NameInput: doc.getElementById("player2-name"),
     player1CharCount: doc.getElementById("player1-char-count"),
@@ -78,6 +87,11 @@ export function getDomElements(doc = document) {
     player2SelectedAvatarName: doc.getElementById("player2-selected-avatar-name"),
     player1AvatarError: doc.getElementById("player1-avatar-error"),
     player2AvatarError: doc.getElementById("player2-avatar-error"),
+    player2ManualFields: doc.getElementById("player2-manual-fields"),
+    player2CpuSummary: doc.getElementById("player2-cpu-summary"),
+    cpuSummaryAvatar: doc.getElementById("cpu-summary-avatar"),
+    cpuSummaryName: doc.getElementById("cpu-summary-name"),
+    cpuSummaryDesc: doc.getElementById("cpu-summary-desc"),
     setupGeneralError: doc.getElementById("setup-general-error"),
     startMatchBtn: doc.getElementById("start-match-btn"),
     player1Badge: doc.getElementById("player1-badge"),
@@ -86,10 +100,12 @@ export function getDomElements(doc = document) {
     player2BadgeAvatar: doc.getElementById("player2-badge-avatar"),
     player1BadgeName: doc.getElementById("player1-badge-name"),
     player2BadgeName: doc.getElementById("player2-badge-name"),
+    player2BadgeRole: doc.getElementById("player2-badge-role"),
     turnBanner: doc.getElementById("turn-banner"),
     turnAvatar: doc.getElementById("turn-avatar"),
     turnPlayerName: doc.getElementById("turn-player-name"),
     turnPlayerSymbol: doc.getElementById("turn-player-symbol"),
+    turnSubtitleText: doc.getElementById("turn-subtitle-text"),
     resultBanner: doc.getElementById("result-banner"),
     confettiContainer: doc.getElementById("confetti-container"),
     resultAvatar: doc.getElementById("result-avatar"),
@@ -219,7 +235,9 @@ export function initAvatarGrid(gridEl, playerNumber, onSelectAvatar) {
 function updateAvatarGridState(gridEl, selectedTagEl, playerNumber, state) {
   const otherPlayer = playerNumber === 1 ? 2 : 1;
   const selectedId = state.players[playerNumber].avatarId;
-  const takenByOtherId = state.players[otherPlayer].avatarId;
+  const isCpuMode = state.mode === GAME_MODES.CPU;
+  // No modo CPU, o Jogador 1 pode escolher qualquer avatar do catálogo (a CPU troca automaticamente se necessário)
+  const takenByOtherId = isCpuMode && playerNumber === 1 ? null : state.players[otherPlayer].avatarId;
   const selectedClass = playerNumber === 1 ? "avatar-option--selected-p1" : "avatar-option--selected-p2";
 
   const buttons = gridEl.querySelectorAll(".avatar-option");
@@ -282,13 +300,53 @@ function renderConfetti(container) {
  * @param {object} state
  */
 export function renderSetupScreen(elements, state) {
+  const isCpuMode = state.mode === GAME_MODES.CPU;
+  const isHard = state.difficulty === CPU_DIFFICULTIES.HARD;
+
+  if (elements.modeCpuBtn && elements.mode2pBtn) {
+    elements.modeCpuBtn.classList.toggle("segmented-btn--active", isCpuMode);
+    elements.modeCpuBtn.setAttribute("aria-pressed", isCpuMode ? "true" : "false");
+    elements.mode2pBtn.classList.toggle("segmented-btn--active", !isCpuMode);
+    elements.mode2pBtn.setAttribute("aria-pressed", !isCpuMode ? "true" : "false");
+  }
+
+  if (elements.difficultyGroup) {
+    elements.difficultyGroup.hidden = !isCpuMode;
+  }
+
+  if (elements.diffEasyBtn && elements.diffHardBtn) {
+    elements.diffEasyBtn.classList.toggle("segmented-btn--active", !isHard);
+    elements.diffEasyBtn.setAttribute("aria-pressed", !isHard ? "true" : "false");
+    elements.diffHardBtn.classList.toggle("segmented-btn--active", isHard);
+    elements.diffHardBtn.setAttribute("aria-pressed", isHard ? "true" : "false");
+  }
+
+  if (elements.player2CpuSummary && elements.player2ManualFields) {
+    elements.player2CpuSummary.hidden = !isCpuMode;
+    elements.player2ManualFields.hidden = isCpuMode;
+  }
+
+  if (isCpuMode && elements.cpuSummaryAvatar) {
+    const cpuPlayer = state.players[2];
+    const cpuAvatar = getAvatarById(cpuPlayer.avatarId);
+    const diffLabel = isHard ? "Difícil" : "Fácil";
+
+    renderAvatarInto(elements.cpuSummaryAvatar, cpuPlayer.avatarId);
+    if (elements.cpuSummaryName) {
+      elements.cpuSummaryName.textContent = `${cpuPlayer.name} • ${cpuPlayer.symbol}`;
+    }
+    if (elements.cpuSummaryDesc) {
+      elements.cpuSummaryDesc.textContent = `Avatar: ${cpuAvatar ? cpuAvatar.label : "Robô"} • Nível: ${diffLabel}`;
+    }
+  }
+
   const p1Name = state.players[1].name;
   const p2Name = state.players[2].name;
 
   if (elements.player1NameInput.value !== p1Name) {
     elements.player1NameInput.value = p1Name;
   }
-  if (elements.player2NameInput.value !== p2Name) {
+  if (!isCpuMode && elements.player2NameInput.value !== p2Name) {
     elements.player2NameInput.value = p2Name;
   }
 
@@ -301,12 +359,15 @@ export function renderSetupScreen(elements, state) {
     1,
     state
   );
-  updateAvatarGridState(
-    elements.player2AvatarGrid,
-    elements.player2SelectedAvatarName,
-    2,
-    state
-  );
+
+  if (!isCpuMode) {
+    updateAvatarGridState(
+      elements.player2AvatarGrid,
+      elements.player2SelectedAvatarName,
+      2,
+      state
+    );
+  }
 }
 
 /**
@@ -317,10 +378,17 @@ export function renderSetupScreen(elements, state) {
 export function renderMatchScreen(elements, state) {
   const p1 = state.players[1];
   const p2 = state.players[2];
+  const isCpuMode = state.mode === GAME_MODES.CPU;
+  const cpuTurnActive = isCpuTurn(state);
 
   // Painel superior dos jogadores
   elements.player1BadgeName.textContent = p1.name;
   elements.player2BadgeName.textContent = p2.name;
+  if (elements.player2BadgeRole) {
+    elements.player2BadgeRole.textContent = isCpuMode
+      ? `Computador (${state.difficulty === CPU_DIFFICULTIES.HARD ? "Difícil" : "Fácil"})`
+      : "Jogador 2";
+  }
   renderAvatarInto(elements.player1BadgeAvatar, p1.avatarId);
   renderAvatarInto(elements.player2BadgeAvatar, p2.avatarId);
 
@@ -334,8 +402,17 @@ export function renderMatchScreen(elements, state) {
     elements.turnBanner.classList.toggle("turn-banner--p1", state.currentTurn === 1);
     elements.turnBanner.classList.toggle("turn-banner--p2", state.currentTurn === 2);
     elements.turnPlayerName.textContent = activePlayer.name;
-    elements.turnPlayerSymbol.textContent = activePlayer.symbol;
     renderAvatarInto(elements.turnAvatar, activePlayer.avatarId);
+
+    if (elements.turnSubtitleText) {
+      if (cpuTurnActive) {
+        elements.turnSubtitleText.textContent =
+          "O computador está escolhendo uma casa para marcar O...";
+      } else {
+        elements.turnSubtitleText.textContent =
+          `Sua vez! Escolha uma casa vazia para marcar ${activePlayer.symbol}`;
+      }
+    }
 
     elements.resultBanner.hidden = true;
     elements.confettiContainer.replaceChildren();
@@ -379,6 +456,8 @@ export function renderMatchScreen(elements, state) {
 
   // Atualização das 9 casas do tabuleiro 3x3
   const winningSet = new Set(state.winningLine);
+  const lockBoardForHuman = !isPlaying || cpuTurnActive;
+
   for (let idx = 0; idx < elements.boardCells.length; idx += 1) {
     const cellBtn = elements.boardCells[idx];
     const value = state.board[idx];
@@ -390,9 +469,9 @@ export function renderMatchScreen(elements, state) {
     cellBtn.classList.toggle("board-cell--x", value === "X");
     cellBtn.classList.toggle("board-cell--o", value === "O");
     cellBtn.classList.toggle("board-cell--filled", value !== null);
-    cellBtn.classList.toggle("board-cell--locked", !isPlaying);
+    cellBtn.classList.toggle("board-cell--locked", lockBoardForHuman);
     cellBtn.classList.toggle("board-cell--winning", isWinningCell);
-    cellBtn.setAttribute("aria-disabled", !isPlaying || value !== null ? "true" : "false");
+    cellBtn.setAttribute("aria-disabled", lockBoardForHuman || value !== null ? "true" : "false");
 
     let label = `Casa ${idx + 1} (linha ${row}, coluna ${col}): `;
     if (value === null) {

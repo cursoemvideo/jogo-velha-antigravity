@@ -1,15 +1,21 @@
 /**
  * Controlador principal da aplicação.
- * Conecta eventos de interface (clique, toque e teclado) ao motor de regras
- * e gerencia a persistência temporária na sessão do navegador.
+ * Conecta eventos de interface (clique, toque e teclado) ao motor de regras,
+ * agenda o turno automatizado da CPU e gerencia a persistência na sessão do navegador.
  */
 
 import {
+  GAME_MODES,
+  CPU_DIFFICULTIES,
   createInitialState,
+  setGameMode,
+  setCpuDifficulty,
   setPlayerName,
   selectPlayerAvatar,
   startMatch,
+  isCpuTurn,
   makeMove,
+  makeCpuMove,
   playAgain,
   resetToSetup,
   validateStoredState
@@ -26,6 +32,7 @@ import {
 } from "./ui.js";
 
 export const SESSION_STORAGE_KEY = "tictactoe_session_v1";
+export const CPU_TURN_DELAY_MS = 450;
 
 /**
  * Lê e valida o estado salvo no sessionStorage da aba.
@@ -83,6 +90,40 @@ export function clearStateFromStorage() {
 export function initApp() {
   const elements = getDomElements(document);
   let currentState = loadStateFromStorage() || createInitialState();
+  let cpuTurnTimeoutId = null;
+
+  function cancelPendingCpuTurn() {
+    if (cpuTurnTimeoutId !== null) {
+      clearTimeout(cpuTurnTimeoutId);
+      cpuTurnTimeoutId = null;
+    }
+  }
+
+  function scheduleCpuTurnIfNeeded() {
+    cancelPendingCpuTurn();
+    if (!isCpuTurn(currentState)) {
+      return;
+    }
+
+    cpuTurnTimeoutId = setTimeout(() => {
+      cpuTurnTimeoutId = null;
+      if (!isCpuTurn(currentState)) {
+        return;
+      }
+
+      const cpuResult = makeCpuMove(currentState);
+      if (!cpuResult.ok) {
+        return;
+      }
+
+      showMatchFeedback(elements, "");
+      updateState(cpuResult.state);
+
+      if (cpuResult.state.phase === "victory" || cpuResult.state.phase === "draw") {
+        elements.playAgainBtn?.focus();
+      }
+    }, CPU_TURN_DELAY_MS);
+  }
 
   function updateState(nextState, { persist = true } = {}) {
     currentState = nextState;
@@ -90,6 +131,22 @@ export function initApp() {
       saveStateToStorage(currentState);
     }
     renderApp(elements, currentState);
+  }
+
+  function handleSelectMode(mode) {
+    clearAllSetupErrors(elements);
+    const result = setGameMode(currentState, mode);
+    if (result.ok) {
+      updateState(result.state);
+    }
+  }
+
+  function handleSelectDifficulty(difficulty) {
+    clearFieldError(elements.setupGeneralError);
+    const result = setCpuDifficulty(currentState, difficulty);
+    if (result.ok) {
+      updateState(result.state);
+    }
   }
 
   function handleNameInput(playerNumber, inputEl, errorEl) {
@@ -103,7 +160,6 @@ export function initApp() {
       clearFieldError(errorEl, inputEl);
     }
 
-    // Se o outro campo tinha erro de nome duplicado e os nomes mudaram, limpa o alerta
     if (
       currentState.players[1].name !== result.state.players[1].name ||
       currentState.players[2].name !== result.state.players[2].name
@@ -149,6 +205,7 @@ export function initApp() {
 
   function handleStartMatch(event) {
     event.preventDefault();
+    cancelPendingCpuTurn();
     clearAllSetupErrors(elements);
 
     const result = startMatch(currentState);
@@ -180,9 +237,15 @@ export function initApp() {
     showMatchFeedback(elements, "");
     updateState(result.state);
     elements.boardCells[0]?.focus();
+    scheduleCpuTurnIfNeeded();
   }
 
   function handleCellAction(cellIndex) {
+    if (isCpuTurn(currentState)) {
+      showMatchFeedback(elements, "Aguarde a jogada do computador.");
+      return;
+    }
+
     const result = makeMove(currentState, cellIndex);
     if (!result.ok) {
       if (result.code === "CELL_OCCUPIED") {
@@ -196,7 +259,10 @@ export function initApp() {
 
     if (result.state.phase === "victory" || result.state.phase === "draw") {
       elements.playAgainBtn?.focus();
+      return;
     }
+
+    scheduleCpuTurnIfNeeded();
   }
 
   function handleBoardKeydown(event, currentIndex) {
@@ -226,6 +292,7 @@ export function initApp() {
   }
 
   function handlePlayAgain() {
+    cancelPendingCpuTurn();
     const result = playAgain(currentState);
     if (!result.ok) {
       return;
@@ -233,9 +300,11 @@ export function initApp() {
     showMatchFeedback(elements, "");
     updateState(result.state);
     elements.boardCells[0]?.focus();
+    scheduleCpuTurnIfNeeded();
   }
 
   function handleChangePlayers() {
+    cancelPendingCpuTurn();
     clearAllSetupErrors(elements);
     showMatchFeedback(elements, "");
     clearStateFromStorage();
@@ -247,6 +316,16 @@ export function initApp() {
   // Inicializa grades de avatares
   initAvatarGrid(elements.player1AvatarGrid, 1, handleSelectAvatar);
   initAvatarGrid(elements.player2AvatarGrid, 2, handleSelectAvatar);
+
+  // Seletores de modo de jogo e dificuldade
+  elements.modeCpuBtn?.addEventListener("click", () => handleSelectMode(GAME_MODES.CPU));
+  elements.mode2pBtn?.addEventListener("click", () => handleSelectMode(GAME_MODES.TWO_PLAYERS));
+  elements.diffEasyBtn?.addEventListener("click", () =>
+    handleSelectDifficulty(CPU_DIFFICULTIES.EASY)
+  );
+  elements.diffHardBtn?.addEventListener("click", () =>
+    handleSelectDifficulty(CPU_DIFFICULTIES.HARD)
+  );
 
   // Eventos dos campos de nome
   elements.player1NameInput.addEventListener("keydown", (event) =>
@@ -275,8 +354,9 @@ export function initApp() {
   elements.playAgainBtn.addEventListener("click", handlePlayAgain);
   elements.changePlayersBtn.addEventListener("click", handleChangePlayers);
 
-  // Renderização inicial
+  // Renderização inicial e retomada de turno da CPU caso restaurado do sessionStorage
   renderApp(elements, currentState);
+  scheduleCpuTurnIfNeeded();
 }
 
 if (typeof document !== "undefined") {

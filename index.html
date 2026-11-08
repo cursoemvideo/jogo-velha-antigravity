@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Jogo da Velha presencial para 2 jogadores no mesmo dispositivo, com escolha de nomes, avatares divertidos e celebração do vencedor.">
-  <title>Jogo da Velha — 2 Jogadores</title>
+  <meta name="description" content="Jogo da Velha para jogar contra o Computador ou presencialmente em 2 jogadores no mesmo dispositivo, com avatares divertidos e celebração do vencedor.">
+  <title>Jogo da Velha — Contra o Computador ou 2 Jogadores</title>
   <link rel="stylesheet" href="./css/styles.css">
 </head>
 <body>
@@ -17,7 +17,7 @@
         </span>
         <div>
           <h1 class="app-header__title">Jogo da Velha</h1>
-          <p class="app-header__subtitle">Disputa presencial para 2 jogadores</p>
+          <p class="app-header__subtitle">Disputa contra o Computador ou para 2 jogadores</p>
         </div>
       </div>
     </header>
@@ -27,10 +27,61 @@
       <section id="setup-screen" class="screen setup-screen" aria-labelledby="setup-title">
         <div class="section-intro">
           <h2 id="setup-title" class="section-intro__title">Preparem a Disputa!</h2>
-          <p class="section-intro__desc">Escolham nomes de até 5 letras (A–Z) e avatares exclusivos para começar.</p>
+          <p id="setup-subtitle" class="section-intro__desc">Escolha o modo de jogo, informe seu nome (até 5 letras A–Z) e selecione seu avatar.</p>
         </div>
 
         <form id="setup-form" class="setup-form" novalidate>
+          <!-- Barra de Modo de Jogo e Nível de Dificuldade -->
+          <div class="mode-config-bar">
+            <div class="mode-config-group" role="group" aria-labelledby="mode-select-label">
+              <span id="mode-select-label" class="form-label">Modo de Jogo</span>
+              <div class="segmented-control">
+                <button
+                  type="button"
+                  id="mode-cpu-btn"
+                  class="segmented-btn segmented-btn--active"
+                  data-mode="cpu"
+                  aria-pressed="true"
+                >
+                  Contra o Computador
+                </button>
+                <button
+                  type="button"
+                  id="mode-2p-btn"
+                  class="segmented-btn"
+                  data-mode="2p"
+                  aria-pressed="false"
+                >
+                  2 Jogadores
+                </button>
+              </div>
+            </div>
+
+            <div id="difficulty-group" class="mode-config-group" role="group" aria-labelledby="difficulty-select-label">
+              <span id="difficulty-select-label" class="form-label">Nível de Dificuldade</span>
+              <div class="segmented-control">
+                <button
+                  type="button"
+                  id="diff-easy-btn"
+                  class="segmented-btn"
+                  data-difficulty="facil"
+                  aria-pressed="false"
+                >
+                  Fácil
+                </button>
+                <button
+                  type="button"
+                  id="diff-hard-btn"
+                  class="segmented-btn segmented-btn--active"
+                  data-difficulty="dificil"
+                  aria-pressed="true"
+                >
+                  Difícil
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div class="setup-grid">
             <!-- Cartão do Jogador 1 (X) -->
             <fieldset class="player-card player-card--p1">
@@ -71,42 +122,60 @@
               </div>
             </fieldset>
 
-            <!-- Cartão do Jogador 2 (O) -->
+            <!-- Cartão do Jogador 2 / CPU (O) -->
             <fieldset class="player-card player-card--p2">
               <legend class="player-card__legend">
                 <span class="player-card__symbol player-card__symbol--o" aria-hidden="true">O</span>
-                <span>Jogador 2 <small>(joga com O)</small></span>
+                <span id="player2-card-title">Jogador 2 <small>(joga com O)</small></span>
               </legend>
 
-              <div class="form-group">
-                <label for="player2-name" class="form-label">Nome do Jogador 2</label>
-                <div class="name-input-wrapper">
-                  <input
-                    type="text"
-                    id="player2-name"
-                    name="player2Name"
-                    class="name-input"
-                    maxlength="5"
-                    autocomplete="off"
-                    spellcheck="false"
-                    autocapitalize="characters"
-                    placeholder="EX: LEO"
-                    aria-describedby="player2-hint player2-name-error"
-                    required
-                  >
-                  <span id="player2-char-count" class="char-counter" aria-hidden="true">0/5</span>
+              <!-- Resumo visual exibido no modo Contra o Computador -->
+              <div id="player2-cpu-summary" class="cpu-summary" aria-live="polite">
+                <div class="cpu-summary__card">
+                  <div id="cpu-summary-avatar" class="cpu-summary__avatar" aria-hidden="true"></div>
+                  <div class="cpu-summary__info">
+                    <span class="cpu-summary__badge">Oponente Automatizado</span>
+                    <strong id="cpu-summary-name" class="cpu-summary__name">CPU • O</strong>
+                    <p id="cpu-summary-desc" class="cpu-summary__desc">Avatar: Robô • Nível: Difícil</p>
+                  </div>
                 </div>
-                <p id="player2-hint" class="field-hint">De 1 a 5 letras maiúsculas (A a Z, sem espaços ou acentos).</p>
-                <p id="player2-name-error" class="field-error" role="alert" aria-live="polite" hidden></p>
+                <p class="cpu-summary__hint">
+                  No modo Contra o Computador, o perfil da CPU é configurado automaticamente com um avatar exclusivo.
+                </p>
               </div>
 
-              <div class="form-group" role="group" aria-labelledby="player2-avatar-label">
-                <div class="avatar-group-header">
-                  <span id="player2-avatar-label" class="form-label">Avatar do Jogador 2</span>
-                  <span id="player2-selected-avatar-name" class="selected-avatar-tag">Nenhum escolhido</span>
+              <!-- Campos manuais exibidos no modo 2 Jogadores -->
+              <div id="player2-manual-fields" class="player-manual-fields" hidden>
+                <div class="form-group">
+                  <label for="player2-name" class="form-label">Nome do Jogador 2</label>
+                  <div class="name-input-wrapper">
+                    <input
+                      type="text"
+                      id="player2-name"
+                      name="player2Name"
+                      class="name-input"
+                      maxlength="5"
+                      autocomplete="off"
+                      spellcheck="false"
+                      autocapitalize="characters"
+                      placeholder="EX: LEO"
+                      aria-describedby="player2-hint player2-name-error"
+                      required
+                    >
+                    <span id="player2-char-count" class="char-counter" aria-hidden="true">0/5</span>
+                  </div>
+                  <p id="player2-hint" class="field-hint">De 1 a 5 letras maiúsculas (A a Z, sem espaços ou acentos).</p>
+                  <p id="player2-name-error" class="field-error" role="alert" aria-live="polite" hidden></p>
                 </div>
-                <div id="player2-avatar-grid" class="avatar-grid"></div>
-                <p id="player2-avatar-error" class="field-error" role="alert" aria-live="polite" hidden></p>
+
+                <div class="form-group" role="group" aria-labelledby="player2-avatar-label">
+                  <div class="avatar-group-header">
+                    <span id="player2-avatar-label" class="form-label">Avatar do Jogador 2</span>
+                    <span id="player2-selected-avatar-name" class="selected-avatar-tag">Nenhum escolhido</span>
+                  </div>
+                  <div id="player2-avatar-grid" class="avatar-grid"></div>
+                  <p id="player2-avatar-error" class="field-error" role="alert" aria-live="polite" hidden></p>
+                </div>
               </div>
             </fieldset>
           </div>
@@ -139,7 +208,7 @@
           <div id="player2-badge" class="player-badge player-badge--p2">
             <div id="player2-badge-avatar" class="player-badge__avatar" aria-hidden="true"></div>
             <div class="player-badge__details">
-              <span class="player-badge__role">Jogador 2</span>
+              <span id="player2-badge-role" class="player-badge__role">Jogador 2</span>
               <strong id="player2-badge-name" class="player-badge__name"></strong>
             </div>
             <span class="player-badge__symbol player-badge__symbol--o" aria-label="Símbolo O">O</span>
@@ -153,7 +222,7 @@
             <h2 id="match-status-heading" class="turn-banner__title">
               Turno de <span id="turn-player-name"></span>
             </h2>
-            <p class="turn-banner__subtitle">
+            <p id="turn-subtitle-text" class="turn-banner__subtitle">
               Sua vez! Escolha uma casa vazia para marcar <strong id="turn-player-symbol">X</strong>
             </p>
           </div>
